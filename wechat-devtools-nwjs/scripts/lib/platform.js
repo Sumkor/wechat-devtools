@@ -1,5 +1,6 @@
 "use strict";
 
+const fs = require("node:fs");
 const os = require("node:os");
 const path = require("node:path");
 
@@ -24,6 +25,13 @@ function defaultWechatCliCandidates(platform = process.platform) {
   return resolvePlatform(platform) === "win32" ? [WINDOWS_CLI] : [...MAC_CLI_CANDIDATES];
 }
 
+function detectWechatRuntime(cliPath, exists = fs.existsSync) {
+  const installDir = path.win32.dirname(cliPath);
+  if (exists(path.win32.join(installDir, "resources", "app.asar"))) return "electron";
+  if (exists(path.win32.join(installDir, "code", "package.nw"))) return "nwjs";
+  return "unknown";
+}
+
 function defaultIdeStateRoots(platform = process.platform, env = process.env) {
   const targetPlatform = resolvePlatform(platform);
   const targetPath = pathApi(targetPlatform);
@@ -41,9 +49,11 @@ function defaultIdeStateRoots(platform = process.platform, env = process.env) {
 
 function buildCliInvocation(cliPath, cliArgs, platform = process.platform) {
   if (resolvePlatform(platform) === "win32") {
+    const quoteCmdArg = (value) => `"${String(value).replace(/"/g, '""')}"`;
+    const commandLine = ["call", quoteCmdArg(cliPath), ...cliArgs.map(quoteCmdArg)].join(" ");
     return {
       command: "cmd.exe",
-      args: ["/d", "/s", "/c", "call", cliPath, ...cliArgs],
+      args: ["/d", "/s", "/c", commandLine],
     };
   }
   return { command: cliPath, args: [...cliArgs] };
@@ -80,6 +90,7 @@ function stopIdeCommands(platform = process.platform) {
 
 module.exports = {
   buildCliInvocation,
+  detectWechatRuntime,
   defaultIdeStateRoots,
   defaultWechatCliCandidates,
   ideExecutableCandidates,

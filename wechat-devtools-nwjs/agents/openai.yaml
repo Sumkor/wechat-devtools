@@ -1,0 +1,4 @@
+interface:
+  display_name: "微信开发者工具 NW.js"
+  short_description: "旧版 NW.js 小程序自动化与请求排查"
+  default_prompt: "使用 $wechat-devtools-nwjs 操作旧版 NW.js 微信小程序，并关注关键操作产生的接口请求。"

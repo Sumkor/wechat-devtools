@@ -1,15 +1,16 @@
 ---
-name: wechat-devtools
-description: 微信开发者工具自动化，用于小程序自动化测试和关键请求排查。适用于启动或复用 Automator 会话，并执行页面操作、抓取关键接口、截图、断言和受控 invoke。
+name: wechat-devtools-nwjs
+description: 旧版 NW.js 微信开发者工具自动化，用于通过 cli.bat、9420 和 miniprogram-automator 启动或复用小程序 Automator 会话，并执行页面操作、关键请求排查、截图、断言和受控 invoke。检测到现代 Electron 版时停止并推荐 wechat-devtools。
 ---
 
-# WeChat DevTools Automation
+# WeChat DevTools NW.js Automation
 
 ## 核心原则
 
 - 执行层只使用本 Skill 随附的 Node CLI/daemon，不要求 MCP Server，也不要临时写一次性 JS 脚本。
 - 支持 Windows 和 macOS。普通命令统一使用跨平台 `node ./scripts/weapp-auto.js ...`；平台差异由启动器处理。
-- 启动依赖微信开发者工具 CLI，自动化依赖官方 `miniprogram-automator`，抓包依赖开发者工具底层 Chromium CDP。
+- 本 Skill 只执行已验证的旧版 NW.js 流程：`cli.bat → open → readiness → auto → 9420 → miniprogram-automator attach`。不得在本 Skill 内调用现代 `wechatide.cmd`、`wechatidecli.cmd` 或实现兼容层。
+- 启动前检测安装目录运行时。检测到 Electron 时立即停止，推荐改用 `$wechat-devtools`；不得调用 `cli.bat`、探测 9420、启动旧 daemon 或尝试现代冷启动。
 - `9420` 是 Automator WebSocket 端口；CDP 和本地 daemon IPC 是独立通道。端口和启动细节见 [references/diagnostics.md](references/diagnostics.md)。
 - 默认使用 `default` 实例和 9420；同一实例内的自动化操作必须串行。
 - 将启动状态明确分为“IDE 已启动、项目已打开、项目已构建、自动化运行中”。不得把 IDE 进程存在或 CLI 返回成功直接表述为项目已就绪；各状态的判据见 [references/diagnostics.md](references/diagnostics.md)。
@@ -30,6 +31,11 @@ npm install
 ```shell
 node .\scripts\weapp-auto.js env check --project '<miniapp-path>'
 ```
+
+先读取输出中的 `runtime` 与 `legacySupported`：
+
+- `runtime: nwjs`（或 macOS 旧版）且 `legacySupported: true`：继续使用本 Skill 的 Node CLI/daemon。
+- `runtime: electron` 且 `legacySupported: false`：停止当前流程，向用户推荐 `$wechat-devtools`。不要在本 Skill 中执行任何现代或旧版启动命令。
 
 3. 先检查是否已有可复用会话；仅在未连接或项目不匹配时启动：
 

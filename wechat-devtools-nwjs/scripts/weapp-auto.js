@@ -35,9 +35,17 @@ async function main(argv) {
     case "env check":
       result = await envCheck(parsed.flags);
       break;
-    case "session start":
-      result = await sendRequest("ensureSession", mapSessionFlags(parsed.flags));
+    case "session start": {
+      const sessionOptions = mapSessionFlags(parsed.flags);
+      const config = resolveLaunchConfig(sessionOptions);
+      if (config.runtime === "electron") {
+        throw new Error(
+          "Detected modern Electron WeChat DevTools. Use $wechat-devtools; the legacy daemon was not started and cli.bat/open/auto/9420 were not invoked."
+        );
+      }
+      result = await sendRequest("ensureSession", sessionOptions);
       break;
+    }
     case "session status":
       result = await sendRequest("status");
       break;
@@ -265,6 +273,23 @@ async function envCheck(flags) {
     multiOpen: Boolean(flags["multi-open"]),
     restartIdeForCdp: !flags["no-restart-ide-for-cdp"],
   });
+  if (config.runtime === "electron") {
+    return {
+      ok: false,
+      platform: process.platform,
+      instance: runtime.instance,
+      skillRoot: SKILL_ROOT,
+      node: process.execPath,
+      projectPath: config.projectPath,
+      projectConfigFound: Boolean(config.projectPath && fileExists(path.join(config.projectPath, "project.config.json"))),
+      wechatCliPath: config.wechatCliPath,
+      wechatCliFound: Boolean(config.wechatCliPath && fileExists(config.wechatCliPath)),
+      runtime: config.runtime,
+      legacySupported: false,
+      recommendedSkill: config.recommendedSkill,
+      message: "Modern Electron WeChat DevTools is not supported by this legacy NW.js/9420 Skill. Use $wechat-devtools; no legacy ports or startup commands were probed.",
+    };
+  }
   const selectedCdpPort = config.cdpEnabled
     ? await resolveCdpPort(config.cdpPort, {
       allowFallback: !config.cdpPortExplicit,
@@ -283,6 +308,9 @@ async function envCheck(flags) {
     projectPath: config.projectPath,
     projectConfigFound: Boolean(config.projectPath && fileExists(path.join(config.projectPath, "project.config.json"))),
     wechatCliPath: config.wechatCliPath,
+    runtime: config.runtime,
+    legacySupported: true,
+    recommendedSkill: null,
     wechatCliFound: Boolean(config.wechatCliPath && fileExists(config.wechatCliPath)),
     automatorPort: config.autoPort,
     automatorPortListening: await isPortListening(config.autoPort),

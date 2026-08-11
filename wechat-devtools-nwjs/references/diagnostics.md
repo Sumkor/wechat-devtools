@@ -1,5 +1,12 @@
 # Diagnostics
 
+## Electron 兼容性门禁
+
+本 Skill 只诊断和执行旧版 NW.js 的 `cli.bat → open → auto → 9420 → miniprogram-automator` 流程。`env check` 会从安装结构识别 runtime：
+
+- `runtime: nwjs` / `legacySupported: true`：继续以下旧版诊断。
+- `runtime: electron` / `legacySupported: false`：立即停止并推荐 `$wechat-devtools`。此结果返回前不会探测 9420、CDP 或 IDE 服务端口，也不会启动旧 daemon、执行 `open/auto` 或调用任何现代命令。
+
 ## 启动状态模型
 
 按以下四层状态逐级判断，不得用后一层动作的 CLI 退出码代替实际状态证据：
@@ -26,7 +33,7 @@
 本 Skill 已内置微信开发者工具启动能力，并由 `session start` 统一触发。
 
 - 启动 9420 依赖微信开发者工具 CLI
-- Windows 默认识别 `C:\Program Files (x86)\Tencent\WechatTool\cli.bat`；macOS 默认识别微信开发者工具 `.app` 内的 CLI。两端都可用 `--wechat-cli` 或 `WECHAT_DEVTOOLS_CLI` 覆盖。
+- Windows 默认识别旧版 `C:\Program Files (x86)\Tencent\WechatTool\cli.bat`；批处理路径和项目参数由平台层做 `cmd.exe` 安全引用。macOS 默认识别微信开发者工具 `.app` 内的 CLI。两端都可用 `--wechat-cli` 或 `WECHAT_DEVTOOLS_CLI` 覆盖。
 - 默认先以一次 IDE 进程启动同时准备 CDP 和 CLI 服务，再调用微信开发者工具 CLI 的 `--port <IDE服务端口> auto --project ... --auto-port 9420 --trust-project` 附着同一 IDE。`--port` 是全局参数，统一放在子命令之前，避免不同 CLI 版本对后置全局参数处理不一致。
 - 支持显式项目路径和 CLI 路径覆盖
 - 如果默认路径不存在，不要继续猜测其它安装位置；应让用户提供可用的微信开发者工具 CLI 路径

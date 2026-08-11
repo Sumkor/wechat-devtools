@@ -1,4 +1,0 @@
-interface:
-  display_name: "微信开发者工具"
-  short_description: "小程序自动化测试与请求排查"
-  default_prompt: "使用 $wechat-devtools 操作微信小程序，并关注关键操作产生的接口请求。"

@@ -6,6 +6,12 @@
 
 ## 会话入口
 
+## 兼容性门禁
+
+先执行 `env check --project`。本 Skill 只拥有 NW.js 的 `cli.bat`、9420、`miniprogram-automator` 和本地 daemon 流程。
+
+若输出为 `runtime: electron` / `legacySupported: false`，立即停止并推荐 `$wechat-devtools`。不得继续检查 9420、执行 `open/auto`、启动旧 daemon，或在本 Skill 内调用 `wechatide.cmd` / `wechatidecli.cmd`。
+
 启动过程中始终区分四层状态：IDE 已启动、项目已打开、项目已构建、自动化运行中。具体判据与对应恢复动作见 [diagnostics.md](diagnostics.md)。只有 `currentPage` 返回非空路由后，才把会话视为可操作。
 
 将启动视为四个可独立恢复的阶段：

@@ -11,6 +11,7 @@ const {
   buildCliInvocation,
   defaultIdeStateRoots,
   defaultWechatCliCandidates,
+  detectWechatRuntime,
   ideExecutableCandidates,
   resolvePlatform,
   stopIdeCommands,
@@ -37,6 +38,7 @@ function resolveLaunchConfig(options = {}) {
   const envIdePort = Number(process.env.WEAPP_IDE_PORT || 0);
   const idePort = options.idePort || envIdePort || null;
 
+  const runtime = options.runtime || (platform === "win32" ? detectWechatRuntime(wechatCliPath) : "nwjs");
   return {
     autoPort,
     cdpEnabled: options.cdpEnabled !== false,
@@ -46,6 +48,9 @@ function resolveLaunchConfig(options = {}) {
     multiOpen: options.multiOpen === true || process.env.WEAPP_MULTI_OPEN === "1",
     projectPath,
     restartIdeForCdp: options.restartIdeForCdp !== false,
+    runtime,
+    legacySupported: runtime !== "electron",
+    recommendedSkill: runtime === "electron" ? "wechat-devtools" : null,
     platform,
     wechatCliPath,
   };
@@ -508,6 +513,8 @@ function runHidden(command, args, timeoutMs = 60000, options = {}) {
     const child = spawn(command, args, {
       stdio: ["ignore", "pipe", "pipe"],
       windowsHide: true,
+      windowsVerbatimArguments:
+        process.platform === "win32" && /(?:^|[\\/])cmd\.exe$/i.test(command),
     });
     let stdout = "";
     let stderr = "";
@@ -585,6 +592,11 @@ function resolveLaunchMethod(config, recoveredFrom, result) {
 }
 
 async function launchDevtools(config, options = {}) {
+  if (config.runtime === "electron") {
+    throw new Error(
+      "Detected modern Electron WeChat DevTools. Stop this legacy workflow and use $wechat-devtools; cli.bat, open/auto, port 9420, and miniprogram-automator were not invoked."
+    );
+  }
   const runCommand = options.runCommand || runHidden;
   const waitForAutoPort = options.waitForAutoPort || waitForStablePort;
   const waitForRuntime = options.waitForRuntime || waitForProjectRuntime;

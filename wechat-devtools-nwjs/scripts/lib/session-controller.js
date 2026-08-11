@@ -146,6 +146,16 @@ class SessionController {
 
   async _ensureSession(options = {}) {
     const launchConfig = this.launcher.resolveLaunchConfig(options);
+    if (launchConfig.runtime === "electron") {
+      this.launchInfo = {
+        runtime: launchConfig.runtime,
+        projectPath: launchConfig.projectPath,
+        recommendedSkill: "wechat-devtools",
+      };
+      throw new Error(
+        "Detected modern Electron WeChat DevTools. Use $wechat-devtools; this legacy session did not probe port 9420, launch cli.bat, or connect miniprogram-automator."
+      );
+    }
     if (!launchConfig.autoPort) {
       launchConfig.autoPort = DEFAULT_AUTOMATOR_PORT;
     }
