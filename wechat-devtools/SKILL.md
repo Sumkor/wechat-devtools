@@ -1,79 +1,55 @@
 ---
 name: wechat-devtools
-description: 现代 Electron 微信开发者工具官方 MCP/toolCall 工作流。按需读取已安装的 wechatide-skill 和工具定义，先确认项目导入元数据，再安全附着普通 GUI 或用官方传统 CLI 单项目冷启动，并由 wechatide.cmd 桥接 IDE 内部工具；用于打开/附着 IDE 与项目、授权、登录、编译、模拟器自动化、调试与 network 排查。检测到旧版 NW.js 时停止并推荐 wechat-devtools-nwjs。
+description: 现代 Electron 微信开发者工具中的小程序 npm miniprogram-automator 自动化测试工作流；覆盖安装、启动/复用 9420 会话、页面操作、就绪检测和接口响应读取，并提示官方 skill/toolCall 的能力边界。
 ---
 
-# WeChat DevTools
+# WeChat DevTools：跨平台 npm Automator 工作流
 
-## 边界
+## 目标与路由
 
-- 启动外壳只使用现代 Electron 开发者工具的官方桌面程序；授权与业务动作只使用内置 `wechatide-skill`、`wechatide.cmd` 和已注册 toolCall。
-- 绝不调用旧版 `cli.bat`、`open/auto`、9420、`miniprogram-automator`、旧 daemon 或旧版 CDP 约定。
-- 检测到旧版 NW.js 时立即停止，推荐改用 `$wechat-devtools-nwjs`；不得在本 Skill 中回退或混用旧版命令。
-- 不修改安装目录中的官方 Skill，不把官方 Skill 整包复制进本 Skill，也不编造兼容层、工具名或参数。
-- 将安装目录中的官方 Skill、所选 scene 和 `wechatide-tools/references/tools.yaml` 视为当前版本的唯一事实来源；本文件只补充经过验证的隔离和启动安全约束。
-- 区分 IDE 的启动外壳与自动化能力：普通 GUI 和 `--cli` 外壳都可承载 toolCall。已导入项目可由官方传统 CLI 形成单项目 `cli-automation` 冷启动；自动化依赖 MCP 授权服务、项目运行时与 Automator/Debugger，不是 `--cli` 参数本身。
-- 本 Skill 的所有本地辅助逻辑只使用无第三方依赖的 Node.js `.mjs`，Windows 与 macOS 调用同一脚本。不要新增或依赖 `.ps1`、`.bat`、`.sh` 业务包装器；安装包自带的 `.cmd` 只作为微信官方入口。
+使用 npm `miniprogram-automator` 编写可重复的 Node.js 自动化测试；官方 `wechatide-skill` + toolCall 只作为环境、编译、普通页面操作和调试的辅助路径。不要把具体项目、账号或业务流程写入本 Skill。
 
-## 官方来源与渐进加载
+## 路由选择
 
-按平台定位官方入口：Windows 默认使用 `C:\Program Files (x86)\Tencent\WechatTool\wechatide.cmd`，macOS 默认使用 `/Applications/wechatwebdevtools.app/Contents/MacOS/wechatide`。将同一安装版本内包含官方根 `SKILL.md` 的目录记为 `<official-skill-root>`。默认位置不存在时运行 `<official-skill-root>/skills/installer/scripts/check-installation.mjs`，使用其返回的绝对命令和安装根目录。
+默认将可重复的页面业务测试交给 npm Automator；IDE 生命周期、项目管理、编译和官方调试能力交给 toolCall。两者能力和限制的比较见 [README.md](README.md)，具体流程按需读取下方参考，且不要混用两套运行时会话。
 
-下列 `references/...`、`skills/...` 和 `wechatide-tools/...` 均相对于 `<official-skill-root>`，不是本 Skill 的本地文件。官方 scene 决定工具、参数、授权、异步任务与失败处理；本 Skill 的本地 SOP 只补充已验证的启动隔离、运行时恢复和证据判定，不替代官方能力。
+安装根、官方 Skill 根或 CLI 绝对路径未知时，先读取 [安装根发现](references/install-root-discovery.md)，按“PATH/官方诊断 → Windows 卸载注册表 → 快捷方式 → 有限目录检查”的顺序生成候选，并用安装包 metadata 与实际入口验证；不要把某台机器的目录写成默认值。
 
-按任务加载官方内容：
+随后读取 [运行时选择](references/runtime-selection.md)，结合官方 installer 返回的 `version`/`reason` 和安装包 metadata，判断当前安装属于现代 Electron 还是旧版 NW.js；不要只按版本字符串猜测：
 
-- 总是完整读取 `<official-skill-root>/SKILL.md` 和当前主 scene 的 `SKILL.md`。
-- 首次调用 toolCall 前读取 `<official-skill-root>/references/environment-readiness.md`。
-- 只有返回 `pending` 时读取 `<official-skill-root>/references/async-task-polling.md`。
-- 只有涉及写入、确认或高影响动作时读取 `<official-skill-root>/references/approval-policy.md`。
-- 只有共享工具归属、工具名或 scene 不明确时读取 `<official-skill-root>/references/tool-index.md`。
-- 只有出现项目路径、配置或 AppID 错误时读取 `<official-skill-root>/wechatide-tools/references/project-tool-error-guide.md`。
-- 只有从零创建项目时读取 `<official-skill-root>/wechatide-tools/references/create-project-guide.md`。
-- 只有需要确认参数时查询 `<official-skill-root>/wechatide-tools/references/tools.yaml` 的单个工具条目或运行 `<tool> --help`。
+- 现代 Electron：使用 npm Automator 和 9420 WebSocket；优先读取 [npm Automator 参考](references/npm-automator.md)。
+- 旧版 NW.js：停止现代路径，改用 [`wechat-devtools-nwjs`](../wechat-devtools-nwjs/SKILL.md)；不要混用 daemon、CDP、端口或会话。
 
-不要复制完整官方 Skill/注册表，不把全部工具注册为常驻 MCP 上下文。官方入口、根 Skill 或注册表缺失时停止，不回退旧版工具。
+官方 skill/toolCall 的定位、入口解析和调用顺序见 [官方 toolCall 参考](references/official-toolcall.md)。
 
-## 调用约定
+## 安装与依赖
 
-固定 clientName 为 `Agent`，同一会话内不得变化。将官方检测结果中的绝对命令路径记为 `<wechatide>`，在当前平台 shell 中按参数数组安全调用：
+本目录的 [package.json](package.json) 固定经过验证的 `miniprogram-automator@0.12.1`，Node.js 要求 `>=18`。在 Skill 目录或你自己的自动化项目目录执行一次 `npm install`；脚本会优先从当前项目、再从 Skill 目录解析依赖。不要把 `node_modules` 提交到 Skill。
 
-```text
-<wechatide> -c Agent check_wechatide_status --skill-version <skillVersion>
-<wechatide> -c Agent <registered_tool> <official_flags>
-```
+## npm 会话规则
 
-所有路径参数使用本地绝对路径。令牌、版本关系、登录门禁和写操作确认完全遵循已安装官方 Skill；不得猜测 token、从安装目录翻找 token 或在回复中复述完整 token。
+1. 解析当前平台可用的微信开发者工具安装根和 Automator 启动入口；只使用实际存在的入口，不把 Windows 文件名或路径套用到 macOS。
+2. 如果目标 9420 WebSocket 已完成握手且 `currentPage().path` 非空，直接复用；禁止再次执行 `auto`。
+3. 只有不存在可用会话时，才按当前平台和安装包文档执行一次 `auto --project <absolute-project> --auto-port <port>`，随后等待页面就绪。
+4. `connect`、`currentPage`、导航、元素查询和点击都设置超时；超时后先复核页面路由、局部数据和动作后置条件，不立即重启运行时。
+5. 同一 npm 会话内串行执行操作；重复启动会重建小程序运行上下文并可能丢失业务登录态。
 
-## 执行流程
+通用连接、就绪和超时逻辑位于 [scripts/automator-session.mjs](scripts/automator-session.mjs)。页面操作使用 `currentPage`、`switchTab`、`navigateTo`、`$`、`$$`、`tap`、`input`、`text`、`data`、`callMethod` 和截图等 npm API；完整示例按需读取 npm 参考。当前 Electron 验证中 `switchTab` 稳定，`reLaunch` 曾导致 `timeout waiting for automator response`，优先使用前者。
 
-1. 识别当前平台、官方入口和用户主目标。
-2. 任务涉及打开、关闭、冷启动、附着或项目窗口时，完整读取 [启动与附着 SOP](references/startup-and-attach-sop.md)。
-3. 首次 toolCall 前用 clientName `Agent` 执行官方状态门禁；只在版本、登录和 token 条件通过后继续。
-4. 选择一个官方主 scene，按其说明调用注册工具；跨 scene 时携带项目路径、已确认事实、blocker 和 pendingTask。
-5. 页面空白、Automator timeout、自定义组件、遮罩或小程序业务登录异常时，完整读取 [自动化运行时 SOP](references/automation-runtime-sop.md)。
-6. 任务需要请求/响应证据时，完整读取 [Network 取证](references/network-evidence.md)。
+## 网络响应
 
-硬约束：不循环开窗、授权、刷新或开页；不自动关闭未知项目；不把进程、窗口、编译成功或非空 `currentPage` 单独视为完整成功。
+npm 包没有 Playwright 式 Network 事件。主动 `fetch`/`callWxMethod('request')` 是重放请求，不是页面原请求；应用层捕获使用 [scripts/capture-wx-request.mjs](scripts/capture-wx-request.mjs)。官方 `get_simulator_network` 不能读取 npm 9420 会话。需要完整网络包时使用同一 Electron 实例的 CDP Network 或显式代理。读取 [Network 取证](references/network-evidence.md) 了解证据判定和覆盖边界。
 
-## 场景路由
+## 自定义组件与安全边界
 
-按官方根 Skill 选择一个主 scene，并完整读取 `<official-skill-root>/skills/<scene>/SKILL.md`：
+官方 toolCall 和 npm Automator 对部分自定义组件内部节点的可见性不稳定；出现 `no such element` 时记录证据并改查宿主节点、页面路由或业务后置条件，不用坐标猜点、evaluate 伪造事件或无限重启。区分 IDE/MCP 授权、开发者工具登录和小程序业务登录，不能用一种状态冒充另一种。
 
-- 状态、登录、项目窗口、AppID、运行时：`initializer`
-- 项目列表、导入、移除、代码片段：`project-manager`
-- 本地 `project.config.json`：`project-config`
-- 编译页面、构建 npm、刷新模拟器：`compiler`
-- 预览、二维码、上传体验版：`previewer`
-- 点击、输入、滚动、断言、脚本：`automator`
-- console、network、截图、运行时取证：`debugger`
-- 云环境、云函数、数据库、存储：`cloudbase-operator`
-- 安装、更新或入口诊断：`installer`
+## 按需加载
 
-从零创建项目使用官方 `create-project-guide.md`，不是独立 scene；地图组件或腾讯位置服务只在相关任务中读取官方 `references/map-skill-index.md`。跨 scene 时严格携带官方要求的 `project`、`confirmed`、`blocker` 和 `pendingTask`，不重复状态门禁或无故开窗。
-
-常用工具包括 `check_wechatide_status`、`open_project_window`、`automation_runtime_info`、`automation_element_action`、`simulator_refresh`、`get_simulator_console`、`get_simulator_network`、`login` 和 `polling_task_result`。调用前仍须从当前安装版本确认名称、scene 与参数。
-
-## 结果报告
-
-按任务逐层报告已确认状态，不跨层推断：`platform`、`launchMode`、MCP/授权、项目元数据、目标窗口、编译、模拟器运行时、debugger、真实业务 network。始终报告实际绝对项目路径、使用的官方工具、未确认层级和 blocker。
+- 安装目录、官方 Skill 或 CLI 入口未知：[安装根发现](references/install-root-discovery.md)
+- 启动、附着和平台入口：[启动与附着 SOP](references/startup-and-attach-sop.md)
+- Electron/NW.js 判定：[运行时选择](references/runtime-selection.md)
+- npm API、启动和页面操作：[npm Automator 参考](references/npm-automator.md)
+- 官方路径：[官方 toolCall 参考](references/official-toolcall.md)
+- 空白页、超时和组件边界：[自动化运行时 SOP](references/automation-runtime-sop.md)
+- 请求/响应证据：[Network 取证](references/network-evidence.md)

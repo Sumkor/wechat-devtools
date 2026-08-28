@@ -1,4 +1,4 @@
 interface:
   display_name: "微信开发者工具"
-  short_description: "跨平台启动或附着现代 IDE，并桥接官方 toolCall"
-  default_prompt: "使用 $wechat-devtools 按官方流程启动或附着现代微信开发者工具，并调用所需 toolCall 完成任务。"
+  short_description: "跨平台使用 npm Automator，并按需桥接官方 toolCall"
+  default_prompt: "使用 $wechat-devtools 判定 Electron/NW.js 运行时，优先通过 npm Automator 完成小程序自动化，必要时按官方参考桥接 toolCall。"

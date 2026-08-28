@@ -1,0 +1,13 @@
+{
+  "name": "wechat-devtools-automator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Reusable npm miniprogram-automator helpers for WeChat DevTools",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "miniprogram-automator": "0.12.1"
+  }
+}
