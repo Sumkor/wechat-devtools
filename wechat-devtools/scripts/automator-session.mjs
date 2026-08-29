@@ -50,14 +50,21 @@ export async function connectReady({
   const deadline = Date.now() + timeoutMs
   while (Date.now() < deadline) {
     try {
-      const page = await withTimeout(mp.currentPage(), timeoutMs, 'currentPage')
+      const remainingMs = Math.max(1, deadline - Date.now())
+      const page = await withTimeout(mp.currentPage(), remainingMs, 'currentPage')
       if (page?.path) return { mp, page }
     } catch {
       // The simulator can be between contexts; continue until the deadline.
     }
-    await new Promise(resolve => setTimeout(resolve, Math.min(pollMs, deadline - Date.now())))
+    const remainingMs = deadline - Date.now()
+    if (remainingMs <= 0) break
+    await new Promise(resolve => setTimeout(resolve, Math.min(pollMs, remainingMs)))
   }
-  await mp.disconnect().catch(() => {})
+  try {
+    await mp.disconnect()
+  } catch {
+    // The runtime may already have closed the protocol connection.
+  }
   throw new Error(`Automator connected but no ready page within ${timeoutMs}ms`)
 }
 

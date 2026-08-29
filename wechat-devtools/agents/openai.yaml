@@ -1,4 +1,4 @@
 interface:
   display_name: "微信开发者工具"
-  short_description: "跨平台使用 npm Automator，并按需桥接官方 toolCall"
-  default_prompt: "使用 $wechat-devtools 判定 Electron/NW.js 运行时，优先通过 npm Automator 完成小程序自动化，必要时按官方参考桥接 toolCall。"
+  short_description: "用 Automator + Electron CDP 自动化小程序并读取真实响应"
+  default_prompt: "使用 $wechat-devtools 判定 Electron/NW.js 运行时；在现代 Electron 冷启动时默认启用同实例标准 CDP，以 npm Automator 操作页面并捕获网络响应，按需使用官方 toolCall。"

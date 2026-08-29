@@ -4,15 +4,25 @@
 
 ## 能力边界
 
-- 使用官方 `get_simulator_network` 读取模拟器 network 缓冲，不连接远程调试端口，也不直接调用 CDP。
-- 记录可能包含 `HTTP_REQUEST`、`HTTP_RESPONSE`、状态码、headers 和 `detail.response`。
-- `detail.response` 可能因二进制、流式、过大、刷新清空或未缓冲而缺失或截断；不能承诺完整响应体。
+- 首选同一 Electron 实例的标准浏览器级 CDP：`/json/list` 枚举 target，`Network.enable` 监听页面真实请求，`Network.getResponseBody` 读取响应体。通用脚本和安全启用流程见 [Electron 标准 CDP](electron-cdp.md)。
+- 标准 CDP 必须证明属于承载目标 9420 项目的同一个 Electron 根实例，并记录真正产生目标请求的 target。能枚举 target 不等于能控制未暴露的原生授权 surface。
+- 官方 `get_simulator_network` 只读取官方 toolCall 的模拟器 network 缓冲；记录可能包含 `HTTP_REQUEST`、`HTTP_RESPONSE`、状态码、headers 和 `detail.response`，但响应可能缺失或截断。
+- 官方 network 不能直接读取独立 npm `miniprogram-automator` 9420 会话。两套会话的 network 缓冲、页面实例和登录态彼此隔离。
 - `SdkReport` 只代表微信运行时上报，不能证明项目业务初始化或目标接口成功。
-- 官方 `get_simulator_network` 只对应官方 toolCall 的内部运行时/AppID 会话；它不能直接读取独立 `cli.bat auto --auto-port 9420` + npm `miniprogram-automator` 会话。两套会话的 network 缓冲、页面实例和登录态彼此隔离。
 
-## npm 9420 应用层捕获
+独立 9420 会话还可通过原始 `App.CDPListProtocol` 确认 inspectee 是否包含 `Network` 域；使用 [probe-cdp-inspectee.mjs](../scripts/probe-cdp-inspectee.mjs)。这是小程序 inspectee 内的版本绑定协议，不是 Electron 浏览器级 `/json/list` endpoint，也不能枚举 `Target`、BrowserWindow、独立 WebView 或原生授权弹窗。默认只做只读探测，不把它作为标准抓包主路径。
 
-npm `miniprogram-automator` 没有 Playwright 式 `page.on('response')` 或内置 Network 面板。无法使用同一 Electron 实例的 CDP/代理时，可在 npm 会话中先用 `exposeFunction` 注册回调，再用 `evaluate` 包装当前页面的 `wx.request`：
+## 证据优先级
+
+1. 同一 Electron、同一页面动作产生的标准 CDP Network 事件与 `getResponseBody`。
+2. 官方 toolCall 自己运行时中的 simulator network。
+3. npm 9420 当前页面的 `wx.request` 应用层 success/fail 包装器。
+4. 页面/组件 data、源码映射与视觉证据。
+5. Node 主动 `fetch` 或 `callWxMethod('request')` 只能作为授权的请求重放，不能证明原页面发出过该请求。
+
+## npm 9420 应用层捕获（回退）
+
+npm `miniprogram-automator` 没有 Playwright 式 `page.on('response')` 或内置 Network 面板。无法使用同一 Electron 实例的标准 CDP、官方 network 或代理时，可在 npm 会话中先用 `exposeFunction` 注册回调，再用 `evaluate` 包装当前页面的 `wx.request`：
 
 通用监听器位于 [scripts/capture-wx-request.mjs](../scripts/capture-wx-request.mjs)，不需要为每个项目临时生成探针。它从运行命令所在的自动化项目目录解析 `miniprogram-automator` 依赖：
 

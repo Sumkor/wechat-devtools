@@ -8,6 +8,7 @@
     "node": ">=18"
   },
   "dependencies": {
-    "miniprogram-automator": "0.12.1"
+    "miniprogram-automator": "0.12.1",
+    "ws": "8.18.3"
   }
 }

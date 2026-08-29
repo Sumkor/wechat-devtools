@@ -24,6 +24,8 @@
 - 分开判断 MCP 客户端授权、IDE 账号登录和小程序业务登录。`check_wechatide_status.tokenRequired` 是 CLI 访问令牌门禁；业务请求中的空 `Access-Token` 通常属于小程序自身登录状态。
 - 页面已加载但列表为空、目标请求未发出或业务 token 为空时，只读确认业务登录状态；不要调用 `wechatide auth/login` 冒充小程序登录。
 - 只走小程序可见的正常登录入口。需要扫码、手机号授权或用户确认时暂停并提示；禁止读取、复制、猜测或迁移其它 IDE/运行时中的 token。
+- `getPhoneNumber` 按钮显示不代表模拟器有可授权用户。`testAccounts()` 与官方账号列表都为空、真实点击后无原生授权面时，停止重复点击；`authorizeAllow()` 返回 `{}` 不能证明授权发生。
+- 需要真实手机号 code 时按 [`getPhoneNumber` 真实授权边界](get-phone-number-auth.md) 判定本地多账号、同会话 CDP、真机自动化和云测边界。禁止使用虚拟手机号替换、mock 回调或业务 Token 迁移冒充成功。
 
 ## 自定义组件与选择器
 
